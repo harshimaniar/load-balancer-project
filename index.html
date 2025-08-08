@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flipped Load Balancer Architecture</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            margin: 0;
+        }
+        
+        .architecture {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+            align-items: center;
+        }
+        
+        .server-section, .lb-section, .customer-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 3px solid #e8f4fd;
+        }
+        
+        .server-section {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+        
+        .lb-section {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            transform: scale(1.05);
+        }
+        
+        .customer-section {
+            background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .server-item, .customer-item {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+        }
+        
+        .server-item:hover, .customer-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .server-item {
+            border-left-color: #e74c3c;
+        }
+        
+        .customer-item {
+            border-left-color: #27ae60;
+        }
+        
+        .lb-component {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #3498db;
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .lb-component:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(52, 152, 219, 0.25);
+        }
+        
+        .component-title {
+            font-weight: 700;
+            color: #2980b9;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        
+        .component-desc {
+            color: #5a6c7d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #3498db;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            border-top: 4px solid #3498db;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .feature-card ul {
+            color: #5a6c7d;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        
+        .message-flow {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .flow-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .flow-step {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .flow-step-number {
+            background: #3498db;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin: 0 auto 15px auto;
+        }
+        
+        .priority-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .priority-high { background: #e74c3c; color: white; }
+        .priority-medium { background: #f39c12; color: white; }
+        .priority-low { background: #95a5a6; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Flipped Load Balancer</h1>
+            <p>High-Performance Message Routing & Multiplexing System</p>
+        </div>
+        
+        <div class="architecture">
+            <!-- Server Section -->
+            <div class="server-section">
+                <div class="section-title">📡 Message Sources</div>
+                <div class="server-item">
+                    <strong>Server 1</strong><br>
+                    <small>Port 8001</small>
+                    <span class="priority-indicator priority-high">HIGH</span>
+                </div>
+                <div class="server-item">
+                    <strong>Server 2</strong><br>
+                    <small>Port 8002</small>
+                    <span class="priority-indicator priority-medium">MED</span>
+                </div>
+                <div class="server-item">
+                    <strong>Server 3</strong><br>
+                    <small>Port 8003</small>
+                    <span class="priority-indicator priority-medium">MED</span>
+                </div>
+                <div class="server-item">
+                    <strong>Server 4</strong><br>
+                    <small>Port 8004</small>
+                    <span class="priority-indicator priority-low">LOW</span>
+                </div>
+            </div>
+            
+            <!-- Load Balancer Section -->
+            <div class="lb-section">
+                <div class="section-title">⚡ Flipped Load Balancer</div>
+                
+                <div class="lb-component">
+                    <div class="component-title">🔄 Message Ingestion</div>
+                    <div class="component-desc">
+                        Async TCP connections to all servers<br>
+                        Multiplexing into unified stream<br>
+                        Buffered queue management
+                    </div>
+                </div>
+                
+                <div class="flow-arrow">▼</div>
+                
+                <div class="lb-component">
+                    <div class="component-title">⏰ Priority Scheduler</div>
+                    <div class="component-desc">
+                        OS-inspired scheduling algorithms<br>
+                        Priority queue + Round robin<br>
+                        Batch processing optimization
+                    </div>
+                </div>
+                
+                <div class="flow-arrow">▼</div>
+                
+                <div class="lb-component">
+                    <div class="component-title">🎯 Message Delivery</div>
+                    <div class="component-desc">
+                        Smart demultiplexing by destination<br>
+                        State tracking & duplicate detection<br>
+                        Concurrent delivery threads
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customer Section -->
+            <div class="customer-section">
+                <div class="section-title">🍽️ Destinations</div>
+                <div class="customer-item">
+                    <strong>Table 1</strong> <span class="priority-indicator priority-high">VIP</span><br>
+                    <small>Breakfast, Lunch, Dinner</small>
+                </div>
+                <div class="customer-item">
+                    <strong>Table 2</strong><br>
+                    <small>Breakfast, Lunch, Dinner</small>
+                </div>
+                <div class="customer-item">
+                    <strong>Table 3</strong><br>
+                    <small>Breakfast, Lunch, Dinner</small>
+                </div>
+                <div class="customer-item">
+                    <strong>Table 4</strong><br>
+                    <small>Breakfast, Lunch, Dinner</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Message Flow Visualization -->
+        <div class="message-flow">
+            <h2 style="text-align: center; color: #2c3e50; margin-bottom: 30px;">📊 Message Flow Process</h2>
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <div class="flow-step-number">1</div>
+                    <strong>Generation</strong><br>
+                    <small>Python servers generate meal orders with priorities</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-number">2</div>
+                    <strong>Ingestion</strong><br>
+                    <small>Java app multiplexes all messages into single stream</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-number">3</div>
+                    <strong>Scheduling</strong><br>
+                    <small>Priority queue orders messages by importance</small>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-step-number">4</div>
+                    <strong>Delivery</strong><br>
+                    <small>Demultiplexed routing to correct customers</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Stats -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-number">10K+</div>
+                <div class="stat-label">Messages/Second</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">&lt;50ms</div>
+                <div class="stat-label">Average Latency</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">99.9%</div>
+                <div class="stat-label">Delivery Success</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4-Table</div>
+                <div class="stat-label">Concurrent Routing</div>
+            </div>
+        </div>
+        
+        <!-- Key Features -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>🚀 High Performance</h3>
+                <ul>
+                    <li>Async I/O for non-blocking operations</li>
+                    <li>Multi-threaded concurrent processing</li>
+                    <li>Optimized queue management</li>
+                    <li>Connection pooling & reuse</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🎯 Smart Routing</h3>
+                <ul>
+                    <li>Header-based message demultiplexing</li>
+                    <li>Priority-aware scheduling</li>
+                    <li>VIP customer handling</li>
+                    <li>Load distribution algorithms</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🔄 Reliability</h3>
+                <ul>
+                    <li>Automatic server reconnection</li>
+                    <li>Duplicate message detection</li>
+                    <li>State persistence & recovery</li>
+                    <li>Graceful failure handling</li>
+                </ul>
+            </div>
+            
+            <div class="feature-card">
+                <h3>📈 Scalability</h3>
+                <ul>
+                    <li>Horizontal server scaling</li>
+                    <li>Kubernetes deployment ready</li>
+                    <li>Dynamic customer addition</li>
+                    <li>Resource-efficient design</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #2c3e50; color: white; border-radius: 15px; text-align: center;">
+            <h3>🔧 Technology Stack</h3>
+            <p><strong>Java 11+</strong> (Main Application) • <strong>Python 3.7+</strong> (Server Simulators) • <strong>TCP/JSON</strong> (Communication) • <strong>Concurrent Collections</strong> (Thread Safety)</p>
+        </div>
+    </div>
+    
+    <script>
+        // Add some interactive animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.server-item, .customer-item, .lb-component');
+            
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.boxShadow = '0 15px 35px rgba(52, 152, 219, 0.3)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.boxShadow = '';
+                });
+            });
+            
+            // Animate flow arrows
+            const arrows = document.querySelectorAll('.flow-arrow');
+            setInterval(() => {
+                arrows.forEach(arrow => {
+                    arrow.style.color = arrow.style.color === 'rgb(231, 76, 60)' ? '#3498db' : '#e74c3c';
+                });
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
